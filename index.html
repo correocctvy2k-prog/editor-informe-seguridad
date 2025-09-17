@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Informe de Seguridad Perimetral</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a192f;
+            --bg-secondary: #112240;
+            --accent-primary: #64ffda;
+            --accent-secondary: #00a8cc;
+            --text-primary: #e6f1ff;
+            --text-secondary: #8892b0;
+            --success: #64ffda;
+            --warning: #f9a826;
+            --danger: #ff5252;
+            --card-shadow: 0 10px 30px rgba(2, 12, 27, 0.7);
+            --transition: all 0.25s cubic-bezier(0.645, 0.045, 0.355, 1);
+            --progress-color: #64ffda;
+            --select-bg: rgba(17, 34, 64, 0.8);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--bg-primary) 0%, #162b4d 100%);
+            padding: 30px;
+            text-align: center;
+            border-bottom: 1px solid rgba(100, 255, 218, 0.2);
+            grid-column: 1 / -1;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(100, 255, 218, 0.1) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        
+        .header-content {
+            flex: 1;
+            z-index: 1;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 2px 10px rgba(100, 255, 218, 0.3);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+        }
+        
+        .progress-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-left: 20px;
+            z-index: 1;
+        }
+        
+        .progress-wrapper {
+            position: relative;
+            width: 100px;
+            height: 100px;
+        }
+        
+        .progress-bg {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: rgba(136, 146, 176, 0.1);
+            box-shadow: 0 0 20px rgba(100, 255, 218, 0.2);
+        }
+        
+        .progress-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            clip-path: inset(0 0 0 50%);
+            background: conic-gradient(var(--progress-color) 0%, transparent 0%);
+            transition: all 1s cubic-bezier(0.65, 0, 0.35, 1);
+            transform: rotate(-90deg);
+        }
+        
+        .progress-inner {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: calc(100% - 20px);
+            height: calc(100% - 20px);
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        
+        .progress-text {
+            font-weight: bold;
+            color: var(--accent-primary);
+            font-size: 1.3rem;
+            text-shadow: 0 0 10px rgba(100, 255, 218, 0.5);
+        }
+        
+        .progress-label {
+            margin-top: 2px;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+        
+        .progress-ring {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid rgba(100, 255, 218, 0.2);
+            box-shadow: 0 0 15px rgba(100, 255, 218, 0.3);
+        }
+        
+        .form-column, .preview-column {
+            background: var(--bg-secondary);
+            border-radius: 15px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+            height: fit-content;
+            transition: transform 0.3s ease;
+        }
+        
+        .form-column:hover, .preview-column:hover {
+            transform: translateY(-5px);
+        }
+        
+        .form-container, .preview-container {
+            padding: 25px;
+        }
+        
+        .main-accordion {
+            margin-bottom: 15px;
+        }
+        
+        .main-accordion-header {
+            background: linear-gradient(135deg, rgba(0, 168, 204, 0.15) 0%, rgba(100, 255, 218, 0.15) 100%);
+            padding: 15px 20px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: var(--transition);
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .main-accordion-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(100, 255, 218, 0.2), transparent);
+            transition: left 0.6s ease;
+        }
+        
+        .main-accordion-header:hover::before {
+            left: 100%;
+        }
+        
+        .main-accordion-header:hover {
+            background: linear-gradient(135deg, rgba(0, 168, 204, 0.25) 0%, rgba(100, 255, 218, 0.25) 100%);
+        }
+        
+        .main-accordion-header .toggle {
+            font-size: 1.3rem;
+            transition: var(--transition);
+            color: var(--accent-primary);
+        }
+        
+        .main-accordion-content {
+            padding: 15px;
+            display: block;
+            background: rgba(10, 25, 47, 0.5);
+            border-radius: 0 0 10px 10px;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .main-accordion-content.collapsed {
+            display: none;
+        }
+        
+        .sub-accordion {
+            margin-bottom: 15px;
+            border: 1px solid rgba(100, 255, 218, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .sub-accordion:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(2, 12, 27, 0.5);
+        }
+        
+        .sub-accordion-header {
+            background: linear-gradient(135deg, rgba(0, 168, 204, 0.1) 0%, rgba(100, 255, 218, 0.1) 100%);
+            padding: 12px 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: var(--transition);
+        }
+        
+        .sub-accordion-header:hover {
+            background: linear-gradient(135deg, rgba(0, 168, 204, 0.15) 0%, rgba(100, 255, 218, 0.15) 100%);
+        }
+        
+        .sub-accordion-header .toggle {
+            font-size: 1.2rem;
+            transition: var(--transition);
+            color: var(--accent-primary);
+        }
+        
+        .sub-accordion-content {
+            padding: 15px;
+            display: block;
+            background: rgba(17, 34, 64, 0.3);
+            animation: slideDown 0.3s ease;
+        }
+        
+        @keyframes slideDown {
+            from { opacity: 0; max-height: 0; }
+            to { opacity: 1; max-height: 1000px; }
+        }
+        
+        .sub-accordion-content.collapsed {
+            display: none;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--accent-primary);
+            font-size: 0.95rem;
+        }
+        
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: var(--transition);
+            background: var(--select-bg);
+            color: var(--text-primary);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(100, 255, 218, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364ffda' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 16px;
+            padding-right: 40px;
+        }
+        
+        .btn-generate {
+            background: linear-gradient(135deg, var(--accent-secondary) 0%, var(--accent-primary) 100%);
+            color: var(--bg-primary);
+            border: none;
+            padding: 12px 18px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn-generate:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(100, 255, 218, 0.3);
+        }
+        
+        .btn-generate:active {
+            transform: translateY(0);
+        }
+        
+        .btn-generate-section {
+            background: rgba(0, 168, 204, 0.1);
+            color: var(--accent-secondary);
+            border: 1px dashed var(--accent-secondary);
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .btn-generate-section:hover {
+            background: rgba(0, 168, 204, 0.2);
+            border-style: solid;
+            transform: translateY(-2px);
+        }
+        
+        .btn-clear {
+            background: rgba(255, 82, 82, 0.1);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+            margin-left: 10px;
+        }
+        
+        .btn-clear:hover {
+            background: rgba(255, 82, 82, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .preview-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(100, 255, 218, 0.2);
+        }
+        
+        .preview-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-refresh {
+            background: rgba(100, 255, 218, 0.1);
+            color: var(--accent-primary);
+            border: 1px solid var(--accent-primary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .btn-refresh:hover {
+            background: rgba(100, 255, 218, 0.2);
+            transform: rotate(180deg);
+        }
+        
+        .preview-content {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            min-height: 600px;
+            overflow-y: auto;
+            max-height: 70vh;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #333;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .preview-content:hover {
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .preview-content h1 {
+            font-size: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 10px;
+        }
+        
+        .preview-content h2 {
+            font-size: 16px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #2c3e50;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        
+        .preview-content h3 {
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            color: #34495e;
+        }
+        
+        .preview-content p {
+            margin-bottom: 10px;
+        }
+        
+        .preview-placeholder {
+            text-align: center;
+            color: #7f8c8d;
+            padding: 40px 20px;
+        }
+        
+        .preview-placeholder i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #bdc3c7;
+        }
+        
+        .section-icon {
+            margin-right: 10px;
+            font-size: 1.2rem;
+            width: 30px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--accent-secondary) 0%, var(--accent-primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-completed {
+            background-color: var(--success);
+        }
+        
+        .status-pending {
+            background-color: var(--warning);
+        }
+        
+        .checklist {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: rgba(17, 34, 64, 0.5);
+            border-radius: 8px;
+            border: 1px solid rgba(100, 255, 218, 0.2);
+        }
+        
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .checklist-item input[type="checkbox"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent-primary);
+        }
+        
+        .checklist-item label {
+            margin-bottom: 0;
+            font-weight: normal;
+            color: var(--text-primary);
+        }
+        
+        .file-upload {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .file-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed var(--accent-secondary);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            background: rgba(0, 168, 204, 0.05);
+            color: var(--accent-secondary);
+            font-weight: 500;
+        }
+        
+        .file-input:hover {
+            border-color: var(--accent-primary);
+            background: rgba(100, 255, 218, 0.05);
+        }
+        
+        .file-input input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+        
+        .preview-container-evidence {
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+        }
+        
+        .image-preview {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            background: rgba(17, 34, 64, 0.8);
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .image-preview:hover {
+            transform: scale(1.05);
+        }
+        
+        .image-preview img {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+        }
+        
+        .image-preview .remove-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease;
+        }
+        
+        .image-preview .remove-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Nuevos estilos para elementos minimalistas */
+        .item-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 10px;
+        }
+        
+        .item-label {
+            flex: 1;
+            font-weight: 600;
+            color: var(--accent-primary);
+            font-size: 0.95rem;
+        }
+        
+        .item-control {
+            flex: 2;
+        }
+        
+        .btn-add-image {
+            background: rgba(100, 255, 218, 0.1);
+            color: var(--accent-primary);
+            border: 1px solid var(--accent-primary);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .btn-add-image:hover {
+            background: rgba(100, 255, 218, 0.2);
+            transform: scale(1.1) rotate(90deg);
+        }
+        
+        .image-mini-preview {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .mini-image {
+            width: 40px;
+            height: 40px;
+            border-radius: 4px;
+            object-fit: cover;
+            border: 1px solid rgba(100, 255, 218, 0.3);
+            transition: transform 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .mini-image:hover {
+            transform: scale(1.2);
+            z-index: 1;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .preview-image-container {
+            margin: 10px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .preview-image {
+            max-width: 200px;
+            max-height: 150px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            transition: transform 0.3s ease;
+        }
+        
+        .preview-image:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Estilos para instalaciones */
+        .installation-container {
+            border: 1px solid rgba(100, 255, 218, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: rgba(17, 34, 64, 0.3);
+        }
+        
+        .installation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .installation-title {
+            font-weight: 600;
+            color: var(--accent-primary);
+        }
+        
+        .btn-remove {
+            background: rgba(255, 82, 82, 0.1);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .btn-remove:hover {
+            background: rgba(255, 82, 82, 0.2);
+            transform: scale(1.1);
+        }
+        
+        .btn-add-installation {
+            background: rgba(0, 168, 204, 0.1);
+            color: var(--accent-secondary);
+            border: 1px dashed var(--accent-secondary);
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .btn-add-installation:hover {
+            background: rgba(0, 168, 204, 0.2);
+            border-style: solid;
+            transform: translateY(-2px);
+        }
+        
+        /* Estilos mejorados para selects y calendario */
+        .select-wrapper {
+            position: relative;
+        }
+        
+        .select-wrapper::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: 15px;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 6px solid var(--accent-primary);
+            pointer-events: none;
+        }
+        
+        input[type="date"] {
+            position: relative;
+        }
+        
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.6) sepia(1) saturate(5) hue-rotate(150deg);
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            background-color: rgba(100, 255, 218, 0.1);
+        }
+        
+        /* Efectos de animación para elementos del formulario */
+        .form-group {
+            animation: fadeInUp 0.5s ease forwards;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Ajustar el orden de animación */
+        .form-group:nth-child(1) { animation-delay: 0.1s; }
+        .form-group:nth-child(2) { animation-delay: 0.2s; }
+        .form-group:nth-child(3) { animation-delay: 0.3s; }
+        .form-group:nth-child(4) { animation-delay: 0.4s; }
+        .form-group:nth-child(5) { animation-delay: 0.5s; }
+        
+        @media (max-width: 1100px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .progress-container {
+                margin: 15px 0 0 0;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .item-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .form-container, .preview-container {
+                padding: 15px;
+            }
+            
+            .progress-wrapper {
+                width: 80px;
+                height: 80px;
+            }
+            
+            .progress-inner {
+                top: 8px;
+                left: 8px;
+                width: calc(100% - 16px);
+                height: calc(100% - 16px);
+            }
+            
+            .progress-text {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1><i class="fas fa-shield-alt"></i> Editor de Informe de Seguridad Perimetral</h1>
+            <p>Complete la información y vea la vista previa en tiempo real</p>
+        </div>
+        
+        <div class="progress-container">
+            <div class="progress-wrapper">
+                <div class="progress-bg"></div>
+                <div class="progress-fill" id="progress-fill"></div>
+                <div class="progress-inner">
+                    <div class="progress-text" id="progress-text">0%</div>
+                    <div class="progress-label">Completado</div>
+                </div>
+                <div class="progress-ring"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="form-column">
+            <div class="form-container">
+                <div class="form-group">
+                    <div class="form-row">
+                        <div>
+                            <label for="mes">Mes del Reporte:</label>
+                            <div class="select-wrapper">
+                                <select id="mes" name="mes" required onchange="updatePreview()">
+                                    <option value="">Seleccione el mes</option>
+                                    <option value="Enero">Enero</option>
+                                    <option value="Febrero">Febrero</option>
+                                    <option value="Marzo">Marzo</option>
+                                    <option value="Abril">Abril</option>
+                                    <option value="Mayo">Mayo</option>
+                                    <option value="Junio">Junio</option>
+                                    <option value="Julio">Julio</option>
+                                    <option value="Agosto">Agosto</option>
+                                    <option value="Septiembre">Septiembre</option>
+                                    <option value="Octubre">Octubre</option>
+                                    <option value="Noviembre">Noviembre</option>
+                                    <option value="Diciembre">Diciembre</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="anno">Año:</label>
+                            <input type="number" id="anno" name="anno" value="2025" required oninput="updatePreview()" min="2020" max="2030">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="form-row">
+                        <div>
+                            <label for="fecha_elaboracion">Fecha de Elaboración:</label>
+                            <input type="date" id="fecha_elaboracion" name="fecha_elaboracion" required onchange="updatePreview()">
+                        </div>
+                        <div>
+                            <label for="responsable">Responsable del Informe:</label>
+                            <input type="text" id="responsable" name="responsable" placeholder="Nombre del responsable" required oninput="updatePreview()">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- SEGURIDAD DE LA INFORMACIÓN -->
+                <div class="main-accordion">
+                    <div class="main-accordion-header" onclick="toggleAccordion(this)">
+                        <span><i class="fas fa-lock section-icon"></i> Seguridad de la Información</span>
+                        <span class="toggle">−</span>
+                    </div>
+                    <div class="main-accordion-content">
+                        <!-- Gestión de Directorio Activo -->
+                        <div class="sub-accordion">
+                            <div class="sub-accordion-header" onclick="toggleAccordion(this)">
+                                <span>1.1. Gestión de Directorio Activo</span>
+                                <span class="toggle">+</span>
+                            </div>
+                            <div class="sub-accordion-content collapsed">
+                                <div class="item-row">
+                                    <div class="item-label">Estado controladores de dominio:</div>
+                                    <div class="item-control">
+                                        <select id="dominioEstado" onchange="updatePreview()">
+                                            <option value="ok">Normal</option>
+                                            <option value="warning">Con problemas</option>
+                                            <option value="unknown">Desconocido</option>
+                                        </select>
+                                    </div>
+                                    <div class="btn-add-image" onclick="document.getElementById('dominioImg').click()">
+                                        <i class="fas fa-camera"></i>
+                                        <input type="file" id="dominioImg" class="file-input" hidden accept="image/*" onchange="handleFileUpload(this, 'dominio')">
+                                    </div>
+                                    <button class="btn-clear" onclick="clearSection('1.1')">
+                                        <i class="fas fa-trash"></i> Limpiar
+                                    </button>
+                                </div>
+                                <div class="image-mini-preview" id="dominio-preview"></div>
+                                
+                                <div class="item-row">
+                                    <div class="item-label">Sincronización de controladores:</div>
+                                    <div class="item-control">
+                                        <select id="sincronizacionEstado" onchange="updatePreview()">
+                                            <option value="ok">Sincronizado</option>
+                                            <option value="warning">Con problemas</option>
+                                            <option value="unknown">Desconocido</option>
+                                        </select>
+                                    </div>
+                                    <div class="btn-add-image" onclick="document.getElementById('sincronizacionImg').click()">
+                                        <i class="fas fa-camera"></i>
+                                        <input type="file" id="sincronizacionImg" class="file-input" hidden accept="image/*" onchange="handleFileUpload(this, 'sincronizacion')">
+                                    </div>
+                                </div>
+                                <div class="image-mini-preview" id="sincronizacion-preview"></div>
+                                
+                                <div class="item-row">
+                                    <div class="item-label">Copia de seguridad:</div>
+                                    <div class="item-control">
+                                        <select id="backupEstado" onchange="updatePreview()">
+                                            <option value="ok">Completada</option>
+                                            <option value="warning">Parcial</option>
+                                            <option value="unknown">No realizada</option>
+                                        </select>
+                                    </div>
+                                    <div class="btn-add-image" onclick="document.getElementById('backupImg').click()">
+                                        <i class="fas fa-camera"></i>
+                                        <input type="file" id="backupImg" class="file-input" hidden accept="image/*" onchange="handleFileUpload(this, 'backup')">
+                                    </div>
+                                </div>
+                                <div class="image-mini-preview" id="backup-preview"></div>
+                                
+                                <div class="item-row">
+                                    <div class="item-label">Consolidado de usuarios:</div>
+                                    <div class="item-control">
+                                        <input type="text" id="usuariosDominio" placeholder="Número de usuarios" oninput="updatePreview()">
+                                    </div>
+                                    <div class="btn-add-image" onclick="document.getElementById('usuariosImg').click()">
+                                        <i class="fas fa-camera"></i>
+                                        <input type="file" id="usuariosImg" class="file-input" hidden accept="image/*" onchange="handleFileUpload(this, 'usuarios')">
+                                    </div>
+                                </div>
+                                <div class="image-mini-preview" id="usuarios-preview"></div>
+                                
+                                <div class="form-group">
+                                    <label for="comentarios_da">Comentarios adicionales:</label>
+                                    <textarea id="comentarios_da" name="comentarios_da" placeholder="Agregue comentarios adicionales si es necesario..." oninput="updatePreview()"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Planes y Seguimiento -->
+                        <div class="sub-accordion">
+                            <div class="sub-accordion-header" onclick="toggleAccordion(this)">
+                                <span>1.2. Planes y Seguimiento</span>
+                                <span class="toggle">+</span>
+                            </div>
+                            <div class="sub-accordion-content collapsed">
+                                <div class="form-group">
+                                    <label for="planes_mejora">Planes de mejora:</label>
+                                    <textarea id="planes_mejora" name="planes_mejora" placeholder="Detalle los planes de mejora..." oninput="updatePreview()"></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="seguimiento_planes">Seguimiento a planes de mejora:</label>
+                                    <textarea id="seguimiento_planes" name="seguimiento_planes" placeholder="Detalle el seguimiento a planes de mejora..." oninput="updatePreview()"></textarea>
+                                </div>
+                                
+                                <div class="item-row">
+                                    <div class="item-label">Evidencias gráficas:</div>
+                                    <div class="btn-add-image" onclick="document.getElementById('ps_evidence').click()">
+                                        <i class="fas fa-camera"></i>
+                                        <input type="file" id="ps_evidence" class="file-input" hidden accept="image/*" multiple onchange="handleFileUpload(this, 'ps_evidence')">
+                                    </div>
+                                    <button class="btn-clear" onclick="clearSection('1.2')">
+                                        <i class="fas fa-trash"></i> Limpiar
+                                    </button>
+                                </div>
+                                <div class="image-mini-preview" id="ps_evidence-preview"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- CIBERSEGURIDAD -->
+                <div class="main-accordion">
+                    <div class="main-accordion-header" onclick="toggleAccordion(this)">
+                        <span><i class="fas fa-shield-virus section-icon"></i> Ciberseguridad</span>
+                        <span class="toggle">+</span>
+                    </div>
+                    <div class="main-accordion-content collapsed">
+                        <!-- Consola Kaspersky -->
+                        <div class="sub-accordion">
+                            <div class="sub-accordion-header" onclick="toggleAccordion(this)">
+                                <span>2.1. Consola Kaspersky Security Center</span>
+                                <span class="toggle">+</span>
+                            </div>
+                            <div class="sub-accordion-content collapsed">
+                                <div class="item-row">
+                                    <div class="item-label">Estado consola de administración:</div>
+                                    <div class="item-control">
+                                        <select id="kasperskyEstado" onchange="updatePreview()">
+                                            <option value="ok">Operativa</option>
+                                            <option value="warning">Con problemas</option>
+                                            <option value="unknown">Desconocido</option>
+                                        </select>
+                                    </div>
+                                    <div class="btn-add-image" onclick="document.getElementById('kasperskyImg').click()">
+                                        <i class="fas fa-camera"></i>
+                                        <input type="file" id="kasperskyImg" class="file-input" hidden accept="image/*" onchange="handleFileUpload(this, 'kaspersky')">
+                                    </div>
+                                    <button class="btn-clear" onclick="clearSection('2.1')">
+                                        <i class="fas fa-trash"></i> Limpiar
+                                    </button>
+                                </div>
+                                <div class="image-mini-preview" id="kaspersky-preview"></div>
+                                
+                                <div class="form-group">
+                                    <label for="control_amenazas">Control de amenazas:</label>
+                                    <textarea id="control_amenazas" name="control_amenazas" placeholder="Detalle el control de amenazas..." oninput="updatePreview()"></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="uso_licencias">Uso de licencias:</label>
+                                    <textarea id="uso_licencias" name="uso_licencias" placeholder="Detalle el uso de licencias..." oninput="updatePreview()"></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="modulos_seguridad">Evidencia de módulos de seguridad:</label>
+                                    <textarea id="modulos_seguridad" name="modulos_seguridad" placeholder="Detalle los módulos de seguridad..." oninput="updatePreview()"></textarea>
+                                </div>
+                                
+                                <div class="item-row">
+                                    <div class="item-label">Backup servidor Kaspersky:</div>
+                                    <div class="item-control">
+                                        <select id="backupKaspersky" onchange="updatePreview()">
+                                            <option value="ok">Completado</option>
+                                            <option value="warning">Parcial</option>
+                                            <option value="unknown">No realizado</option>
+                                        </select>
+                                    </div>
+                                    <div class="btn-add-image" onclick="document.getElementById('backupKasperskyImg').click()">
+                                        <i class="fas fa-camera"></i>
+                                        <input type="file" id="backupKasperskyImg" class="file-input" hidden accept="image/*" onchange="handleFileUpload(this, 'backupKaspersky')">
+                                    </div>
+                                </div>
+                                <div class="image-mini-preview" id="backupKaspersky-preview"></div>
+                                
+                                <div class="form-group">
+                                    <label for="comentarios_k">Comentarios adicionales:</label>
+                                    <textarea id="comentarios_k" name="comentarios_k" placeholder="Agregue comentarios adicionales si es necesario..." oninput="updatePreview()"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Reportes y Controles Fortinet -->
+                        <div class="sub-accordion">
+                            <div class="sub-accordion-header" onclick="toggleAccordion(this)">
+                                <span>2.2. Reportes y Controles Fortinet</span>
+                                <span class="toggle">+</span>
+                            </div>
+                            <div class="sub-accordion-content collapsed">
+                                <div class="form-group">
+                                    <label for="reporte_fortianalyzer">Reporte de amenazas Fortianalyzer:</label>
+                                    <textarea id="reporte_fortianalyzer" name="reporte_fortianalyzer" placeholder="Detalle el reporte de amenazas..." oninput="updatePreview()"></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="bloqueo_accesos">Bloqueo de accesos por categoría Fortianalyzer:</label>
+                                    <textarea id="bloqueo_accesos" name="bloqueo_accesos" placeholder="Detalle el bloqueo de accesos..." oninput="updatePreview()"></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="reporte_fortimail">Reporte Fortimail:</label>
+                                    <textarea id="reporte_fortimail" name="reporte_fortimail" placeholder="Detalle el reporte Fortimail..." oninput="updatePreview()"></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="volumen_correos">Volumen de correos:</label>
+                                    <input type="text" id="volumen_correos" placeholder="Número de correos procesados" oninput="updatePreview()">
+                                </div>
+                                
+                                <div class="item-row">
+                                    <div class="item-label">Evidencias gráficas:</div>
+                                    <div class="btn-add-image" onclick="document.getElementById('fortinet_evidence').click()">
+                                        <i class="fas fa-camera"></i>
+                                        <input type="file" id="fortinet_evidence" class="file-input" hidden accept="image/*" multiple onchange="handleFileUpload(this, 'fortinet_evidence')">
+                                    </div>
+                                    <button class="btn-clear" onclick="clearSection('2.2')">
+                                        <i class="fas fa-trash"></i> Limpiar
+                                    </button>
+                                </div>
+                                <div class="image-mini-preview" id="fortinet_evidence-preview"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Análisis y Campañas -->
+                        <div class="sub-accordion">
+                            <div class="sub-accordion-header" onclick="toggleAccordion(this)">
+                                <span>2.3. Análisis y Campañas</span>
+                                <span class="toggle">+</span>
+                            </div>
+                            <div class="sub-accordion-content collapsed">
+                                <div class="form-group">
+                                    <label for="analisis_amenazas">Control de amenazas por archivos o URL maliciosos (Virus Total):</label>
+                                    <textarea id="analisis_amenazas" name="analisis_amenazas" placeholder="Detalle el análisis de amenazas..." oninput="updatePreview()"></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="campanas_concientizacion">Difusión de campañas de concientización:</label>
+                                    <textarea id="campanas_concientizacion" name="campanas_concientizacion" placeholder="Detalle las campañas de concientización..." oninput="updatePreview()"></textarea>
+                                </div>
+                                
+                                <div class="item-row">
+                                    <div class="item-label">Evidencias gráficas:</div>
+                                    <div class="btn-add-image" onclick="document.getElementById('analisis_evidence').click()">
+                                        <i class="fas fa-camera"></i>
+                                        <input type="file" id="analisis_evidence" class="file-input" hidden accept="image/*" multiple onchange="handleFileUpload(this, 'analisis_evidence')">
+                                    </div>
+                                    <button class="btn-clear" onclick="clearSection('2.3')">
+                                        <i class="fas fa-trash"></i> Limpiar
+                                    </button>
+                                </div>
+                                <div class="image-mini-preview" id="analisis_evidence-preview"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- SEGURIDAD ELECTRÓNICA -->
+                <div class="main-accordion">
+                    <div class="main-accordion-header" onclick="toggleAccordion(this)">
+                        <span><i class="fas fa-video section-icon"></i> Seguridad Electrónica</span>
+                        <span class="toggle">+</span>
+                    </div>
+                    <div class="main-accordion-content collapsed">
+                        <!-- Sistemas de Videovigilancia -->
+                        <div class="sub-accordion">
+                            <div class="sub-accordion-header" onclick="toggleAccordion(this)">
+                                <span>3.1. Sistemas de Videovigilancia</span>
+                                <span class="toggle">+</span>
+                            </div>
+                            <div class="sub-accordion-content collapsed">
+                                <div class="item-row">
+                                    <div class="item-label">Estado sistema CCTV:</div>
+                                    <div class="item-control">
+                                        <select id="cctvEstado" onchange="updatePreview()">
+                                            <option value="ok">Operativo</option>
+                                            <option value="warning">Con problemas</option>
+                                            <option value="unknown">Desconocido</option>
+                                        </select>
+                                    </div>
+                                    <div class="btn-add-image" onclick="document.getElementById('cctvImg').click()">
+                                        <i class="fas fa-camera"></i>
+                                        <input type="file" id="cctvImg" class="file-input" hidden accept="image/*" onchange="handleFileUpload(this, 'cctv')">
+                                    </div>
+                                    <button class="btn-clear" onclick="clearSection('3.1')">
+                                        <i class="fas fa-trash"></i> Limpiar
+                                    </button>
+                                </div>
+                                <div class="image-mini-preview" id="cctv-preview"></div>
+                                
+                                <div class="form-group">
+                                    <label for="mantenimiento_cctv">Mantenimiento programado y realizado:</label>
+                                    <textarea id="mantenimiento_cctv" name="mantenimiento_cctv" placeholder="Detalle el mantenimiento del sistema CCTV..." oninput="updatePreview()"></textarea>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Instalaciones CCTV:</label>
+                                    <button type="button" class="btn-add-installation" onclick="addInstallation('cctv')">
+                                        <i class="fas fa-plus"></i> Agregar Instalación CCTV
+                                    </button>
+                                    
+                                    <div id="cctv-instalaciones">
+                                        <!-- Las instalaciones se agregarán aquí dinámicamente -->
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="comentarios_cctv">Comentarios adicionales:</label>
+                                    <textarea id="comentarios_cctv" name="comentarios_cctv" placeholder="Agregue comentarios adicionales si es necesario..." oninput="updatePreview()"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Sistemas de Alarma -->
+                        <div class="sub-accordion">
+                            <div class="sub-accordion-header" onclick="toggleAccordion(this)">
+                                <span>3.2. Sistemas de Alarma</span>
+                                <span class="toggle">+</span>
+                            </div>
+                            <div class="sub-accordion-content collapsed">
+                                <div class="item-row">
+                                    <div class="item-label">Estado sistemas de alarma:</div>
+                                    <div class="item-control">
+                                        <select id="alarmaEstado" onchange="updatePreview()">
+                                            <option value="ok">Operativo</option>
+                                            <option value="warning">Con problemas</option>
+                                            <option value="unknown">Desconocido</option>
+                                        </select>
+                                    </div>
+                                    <div class="btn-add-image" onclick="document.getElementById('alarmaImg').click()">
+                                        <i class="fas fa-camera"></i>
+                                        <input type="file" id="alarmaImg" class="file-input" hidden accept="image/*" onchange="handleFileUpload(this, 'alarma')">
+                                    </div>
+                                    <button class="btn-clear" onclick="clearSection('3.2')">
+                                        <i class="fas fa-trash"></i> Limpiar
+                                    </button>
+                                </div>
+                                <div class="image-mini-preview" id="alarma-preview"></div>
+                                
+                                <div class="form-group">
+                                    <label>Instalaciones de Alarmas:</label>
+                                    <button type="button" class="btn-add-installation" onclick="addInstallation('alarma')">
+                                        <i class="fas fa-plus"></i> Agregar Instalación de Alarma
+                                    </button>
+                                    
+                                    <div id="alarma-instalaciones">
+                                        <!-- Las instalaciones se agregarán aquí dinámicamente -->
+                                    </div>
+                                </div>
+                                
+                                <div class="item-row">
+                                    <div class="item-label">Monitoreo externo:</div>
+                                    <div class="item-control">
+                                        <select id="monitoreoExterno" onchange="updatePreview()">
+                                            <option value="ok">Activo</option>
+                                            <option value="warning">Intermitente</option>
+                                            <option value="unknown">Inactivo</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="item-row">
+                                    <div class="item-label">Monitoreo propio:</div>
+                                    <div class="item-control">
+                                        <select id="monitoreoPropio" onchange="updatePreview()">
+                                            <option value="ok">Activo</option>
+                                            <option value="warning">Intermitente</option>
+                                            <option value="unknown">Inactivo</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Control de Acceso Físico -->
+                        <div class="sub-accordion">
+                            <div class="sub-accordion-header" onclick="toggleAccordion(this)">
+                                <span>3.3. Control de Acceso Físico</span>
+                                <span class="toggle">+</span>
+                            </div>
+                            <div class="sub-accordion-content collapsed">
+                                <div class="item-row">
+                                    <div class="item-label">Estado del sistema control de acceso ZKBio CVSecurity:</div>
+                                    <div class="item-control">
+                                        <select id="accesoEstado" onchange="updatePreview()">
+                                            <option value="ok">Operativo</option>
+                                            <option value="warning">Con problemas</option>
+                                            <option value="unknown">Desconocido</option>
+                                        </select>
+                                    </div>
+                                    <div class="btn-add-image" onclick="document.getElementById('accesoImg').click()">
+                                        <i class="fas fa-camera"></i>
+                                        <input type="file" id="accesoImg" class="file-input" hidden accept="image/*" onchange="handleFileUpload(this, 'acceso')">
+                                    </div>
+                                    <button class="btn-clear" onclick="clearSection('3.3')">
+                                        <i class="fas fa-trash"></i> Limpiar
+                                    </button>
+                                </div>
+                                <div class="image-mini-preview" id="acceso-preview"></div>
+                                
+                                <div class="form-group">
+                                    <label for="numero_puertas">Número de puertas:</label>
+                                    <input type="number" id="numero_puertas" min="0" oninput="updatePreview()">
+                                </div>
+                                
+                                <div class="item-row">
+                                    <div class="item-label">Estado del servidor:</div>
+                                    <div class="item-control">
+                                        <select id="servidorEstado" onchange="updatePreview()">
+                                            <option value="ok">Operativo</option>
+                                            <option value="warning">Con problemas</option>
+                                            <option value="unknown">Desconocido</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="item-row">
+                                    <div class="item-label">Backup servidor control de acceso:</div>
+                                    <div class="item-control">
+                                        <select id="backupAcceso" onchange="updatePreview()">
+                                            <option value="ok">Completado</option>
+                                            <option value="warning">Parcial</option>
+                                            <option value="unknown">No realizado</option>
+                                        </select>
+                                    </div>
+                                    <div class="btn-add-image" onclick="document.getElementById('backupAccesoImg').click()">
+                                        <i class="fas fa-camera"></i>
+                                        <input type="file" id="backupAccesoImg" class="file-input" hidden accept="image/*" onchange="handleFileUpload(this, 'backupAcceso')">
+                                    </div>
+                                </div>
+                                <div class="image-mini-preview" id="backupAcceso-preview"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Servidor DSS -->
+                        <div class="sub-accordion">
+                            <div class="sub-accordion-header" onclick="toggleAccordion(this)">
+                                <span>3.4. Servidor DSS</span>
+                                <span class="toggle">+</span>
+                            </div>
+                            <div class="sub-accordion-content collapsed">
+                                <div class="form-group">
+                                    <label for="dispositivos_canales">Número de dispositivos y canales:</label>
+                                    <input type="text" id="dispositivos_canales" placeholder="Ej: 10 dispositivos, 32 canales" oninput="updatePreview()">
+                                </div>
+                                
+                                <div class="item-row">
+                                    <div class="item-label">Estado servidor DSS:</div>
+                                    <div class="item-control">
+                                        <select id="dssEstado" onchange="updatePreview()">
+                                            <option value="ok">Operativo</option>
+                                            <option value="warning">Con problemas</option>
+                                            <option value="unknown">Desconocido</option>
+                                        </select>
+                                    </div>
+                                    <div class="btn-add-image" onclick="document.getElementById('dssImg').click()">
+                                        <i class="fas fa-camera"></i>
+                                        <input type="file" id="dssImg" class="file-input" hidden accept="image/*" onchange="handleFileUpload(this, 'dss')">
+                                    </div>
+                                    <button class="btn-clear" onclick="clearSection('3.4')">
+                                        <i class="fas fa-trash"></i> Limpiar
+                                    </button>
+                                </div>
+                                <div class="image-mini-preview" id="dss-preview"></div>
+                                
+                                <div class="item-row">
+                                    <div class="item-label">Backup servidor DSS:</div>
+                                    <div class="item-control">
+                                        <select id="backupDss" onchange="updatePreview()">
+                                            <option value="ok">Completado</option>
+                                            <option value="warning">Parcial</option>
+                                            <option value="unknown">No realizado</option>
+                                        </select>
+                                    </div>
+                                    <div class="btn-add-image" onclick="document.getElementById('backupDssImg').click()">
+                                        <i class="fas fa-camera"></i>
+                                        <input type="file" id="backupDssImg" class="file-input" hidden accept="image/*" onchange="handleFileUpload(this, 'backupDss')">
+                                    </div>
+                                </div>
+                                <div class="image-mini-preview" id="backupDss-preview"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Conclusiones -->
+                <div class="main-accordion">
+                    <div class="main-accordion-header" onclick="toggleAccordion(this)">
+                        <span><i class="fas fa-clipboard-check section-icon"></i> Conclusiones y Anexos</span>
+                        <span class="toggle">+</span>
+                    </div>
+                    <div class="main-accordion-content collapsed">
+                        <div class="form-group">
+                            <label for="evaluacion_general">Evaluación general del estado de la seguridad perimetral:</label>
+                            <textarea id="evaluacion_general" name="evaluacion_general" placeholder="Realice una evaluación general..." oninput="updatePreview()"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="riesgos_observaciones">Riesgos y observaciones principales:</label>
+                            <textarea id="riesgos_observaciones" name="riesgos_observaciones" placeholder="Detalle los riesgos y observaciones..." oninput="updatePreview()"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="prioridades">Prioridades para el próximo periodo:</label>
+                            <textarea id="prioridades" name="prioridades" placeholder="Detalle las prioridades para el próximo periodo..." oninput="updatePreview()"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="anexos">Anexos (documentos de referencia):</label>
+                            <textarea id="anexos" name="anexos" placeholder="Liste los documentos de referencia..." oninput="updatePreview()"></textarea>
+                        </div>
+                        
+                        <button class="btn-clear" onclick="clearSection('conclusiones')">
+                            <i class="fas fa-trash"></i> Limpiar Conclusiones
+                        </button>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 30px; text-align: center;">
+                    <button class="btn-generate-section" style="padding: 12px 25px; font-size: 1.1rem;" onclick="generateFullReport()">
+                        <i class="fas fa-file-pdf"></i> Generar Informe Completo
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="preview-column">
+            <div class="preview-container">
+                <div class="preview-header">
+                    <h3><i class="fas fa-eye"></i> Vista Previa del Informe</h3>
+                    <div class="preview-actions">
+                        <button class="btn-refresh" onclick="refreshPreview()">
+                            <i class="fas fa-sync-alt"></i> Actualizar
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="preview-content" id="previewContent">
+                    <div class="preview-placeholder">
+                        <i class="fas fa-file-alt"></i>
+                        <p>El contenido del informe aparecerá aquí</p>
+                        <p>Comience a completar los campos para ver la vista previa</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Inicializar fecha actual
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date();
+            document.getElementById('fecha_elaboracion').value = today.toISOString().split('T')[0];
+            updatePreview();
+            
+            // Animar elementos al cargar
+            setTimeout(() => {
+                document.querySelectorAll('.form-group').forEach((el, i) => {
+                    el.style.animation = `fadeInUp 0.5s ease ${i * 0.1}s forwards`;
+                });
+            }, 300);
+        });
+        
+        // Función para alternar acordeones
+        function toggleAccordion(element) {
+            const content = element.nextElementSibling;
+            const toggle = element.querySelector('.toggle');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                toggle.textContent = '−';
+            } else {
+                content.classList.add('collapsed');
+                toggle.textContent = '+';
+            }
+        }
+        
+        // Función para manejar subida de archivos
+        function handleFileUpload(input, fieldId) {
+            const files = input.files;
+            const container = document.getElementById(fieldId + '-preview');
+            
+            // Limpiar contenedor si no hay múltiples archivos
+            if (!input.multiple) {
+                container.innerHTML = '';
+            }
+            
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.createElement('img');
+                    preview.className = 'mini-image';
+                    preview.src = e.target.result;
+                    preview.title = file.name;
+                    container.appendChild(preview);
+                    updatePreview();
+                };
+                reader.readAsDataURL(file);
+            });
+            
+            updateProgress();
+        }
+        
+        // Función para agregar instalaciones
+        function addInstallation(type) {
+            const containerId = `${type}-instalaciones`;
+            const container = document.getElementById(containerId);
+            const installationId = `installation-${type}-${Date.now()}`;
+            
+            const installationHTML = `
+                <div class="installation-container" id="${installationId}">
+                    <div class="installation-header">
+                        <div class="installation-title">Nueva Instalación ${type.toUpperCase()}</div>
+                        <button class="btn-remove" onclick="document.getElementById('${installationId}').remove(); updatePreview()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre del punto:</label>
+                        <input type="text" placeholder="Nombre del punto de instalación" oninput="updatePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>Descripción:</label>
+                        <textarea placeholder="Descripción de la instalación" oninput="updatePreview()"></textarea>
+                    </div>
+                    <div class="item-row">
+                        <div class="item-label">Evidencia:</div>
+                        <div class="btn-add-image" onclick="document.getElementById('${installationId}-file').click()">
+                            <i class="fas fa-camera"></i>
+                            <input type="file" id="${installationId}-file" class="file-input" hidden accept="image/*" onchange="handleFileUpload(this, '${installationId}-evidence')">
+                        </div>
+                    </div>
+                    <div class="image-mini-preview" id="${installationId}-evidence-preview"></div>
+                </div>
+            `;
+            
+            container.insertAdjacentHTML('beforeend', installationHTML);
+            updatePreview();
+        }
+        
+        // Función para limpiar secciones
+        function clearSection(sectionId) {
+            let confirmacion = confirm("¿Está seguro de que desea limpiar esta sección? Se perderán todos los datos.");
+            if (!confirmacion) return;
+            
+            switch(sectionId) {
+                case '1.1':
+                    document.getElementById('dominioEstado').value = 'ok';
+                    document.getElementById('sincronizacionEstado').value = 'ok';
+                    document.getElementById('backupEstado').value = 'ok';
+                    document.getElementById('usuariosDominio').value = '';
+                    document.getElementById('comentarios_da').value = '';
+                    document.getElementById('dominio-preview').innerHTML = '';
+                    document.getElementById('sincronizacion-preview').innerHTML = '';
+                    document.getElementById('backup-preview').innerHTML = '';
+                    document.getElementById('usuarios-preview').innerHTML = '';
+                    break;
+                    
+                case '1.2':
+                    document.getElementById('planes_mejora').value = '';
+                    document.getElementById('seguimiento_planes').value = '';
+                    document.getElementById('ps_evidence-preview').innerHTML = '';
+                    break;
+                    
+                case '2.1':
+                    document.getElementById('kasperskyEstado').value = 'ok';
+                    document.getElementById('control_amenazas').value = '';
+                    document.getElementById('uso_licencias').value = '';
+                    document.getElementById('modulos_seguridad').value = '';
+                    document.getElementById('backupKaspersky').value = 'ok';
+                    document.getElementById('comentarios_k').value = '';
+                    document.getElementById('kaspersky-preview').innerHTML = '';
+                    document.getElementById('backupKaspersky-preview').innerHTML = '';
+                    break;
+                    
+                case '2.2':
+                    document.getElementById('reporte_fortianalyzer').value = '';
+                    document.getElementById('bloqueo_accesos').value = '';
+                    document.getElementById('reporte_fortimail').value = '';
+                    document.getElementById('volumen_correos').value = '';
+                    document.getElementById('fortinet_evidence-preview').innerHTML = '';
+                    break;
+                    
+                case '2.3':
+                    document.getElementById('analisis_amenazas').value = '';
+                    document.getElementById('campanas_concientizacion').value = '';
+                    document.getElementById('analisis_evidence-preview').innerHTML = '';
+                    break;
+                    
+                case '3.1':
+                    document.getElementById('cctvEstado').value = 'ok';
+                    document.getElementById('mantenimiento_cctv').value = '';
+                    document.getElementById('comentarios_cctv').value = '';
+                    document.getElementById('cctv-preview').innerHTML = '';
+                    document.getElementById('cctv-instalaciones').innerHTML = '';
+                    break;
+                    
+                case '3.2':
+                    document.getElementById('alarmaEstado').value = 'ok';
+                    document.getElementById('monitoreoExterno').value = 'ok';
+                    document.getElementById('monitoreoPropio').value = 'ok';
+                    document.getElementById('alarma-preview').innerHTML = '';
+                    document.getElementById('alarma-instalaciones').innerHTML = '';
+                    break;
+                    
+                case '3.3':
+                    document.getElementById('accesoEstado').value = 'ok';
+                    document.getElementById('numero_puertas').value = '';
+                    document.getElementById('servidorEstado').value = 'ok';
+                    document.getElementById('backupAcceso').value = 'ok';
+                    document.getElementById('acceso-preview').innerHTML = '';
+                    document.getElementById('backupAcceso-preview').innerHTML = '';
+                    break;
+                    
+                case '3.4':
+                    document.getElementById('dispositivos_canales').value = '';
+                    document.getElementById('dssEstado').value = 'ok';
+                    document.getElementById('backupDss').value = 'ok';
+                    document.getElementById('dss-preview').innerHTML = '';
+                    document.getElementById('backupDss-preview').innerHTML = '';
+                    break;
+                    
+                case 'conclusiones':
+                    document.getElementById('evaluacion_general').value = '';
+                    document.getElementById('riesgos_observaciones').value = '';
+                    document.getElementById('prioridades').value = '';
+                    document.getElementById('anexos').value = '';
+                    break;
+            }
+            
+            updatePreview();
+        }
+        
+        // Función para calcular y actualizar el progreso
+        function updateProgress() {
+            const totalFields = 45; // Número total de campos en el formulario
+            let completedFields = 0;
+            
+            // Verificar campos de texto
+            const textFields = document.querySelectorAll('input[type="text"], textarea, select');
+            textFields.forEach(field => {
+                if (field.value.trim() !== '') {
+                    completedFields++;
+                }
+            });
+            
+            // Verificar campos de fecha
+            const dateField = document.getElementById('fecha_elaboracion');
+            if (dateField.value !== '') {
+                completedFields++;
+            }
+            
+            // Verificar imágenes subidas
+            const imagePreviews = document.querySelectorAll('.image-mini-preview');
+            imagePreviews.forEach(preview => {
+                if (preview.querySelectorAll('img').length > 0) {
+                    completedFields++;
+                }
+            });
+            
+            // Verificar instalaciones
+            const installations = document.querySelectorAll('.installation-container');
+            completedFields += installations.length;
+            
+            // Calcular porcentaje
+            const progress = Math.min(100, Math.round((completedFields / totalFields) * 100));
+            
+            // Actualizar indicador de progreso
+            document.getElementById('progress-fill').style.background = `conic-gradient(var(--progress-color) ${progress * 3.6}deg, transparent 0)`;
+            document.getElementById('progress-text').textContent = `${progress}%`;
+            
+            // Cambiar color según el progreso
+            const progressColor = progress < 30 ? '#e74c3c' : progress < 70 ? '#f9a826' : '#64ffda';
+            document.getElementById('progress-fill').style.background = `conic-gradient(${progressColor} ${progress * 3.6}deg, transparent 0)`;
+            document.documentElement.style.setProperty('--progress-color', progressColor);
+        }
+        
+        // Función para actualizar la vista previa
+        function updatePreview() {
+            const previewContent = document.getElementById('previewContent');
+            
+            // Obtener valores del formulario
+            const mes = document.getElementById('mes').value || '[Mes]';
+            const anno = document.getElementById('anno').value || '[Año]';
+            const fecha = document.getElementById('fecha_elaboracion').value || '[Fecha]';
+            const responsable = document.getElementById('responsable').value || '[Responsable]';
+            
+            // Eliminar placeholder si existe
+            const placeholder = previewContent.querySelector('.preview-placeholder');
+            if (placeholder) {
+                placeholder.remove();
+            }
+            
+            // Generar contenido del informe
+            const content = `
+                <h1>INFORME DE SEGURIDAD PERIMETRAL (${mes})</h1>
+                
+                <p><strong>Fecha:</strong> ${fecha}</p>
+                <p><strong>Responsable:</strong> ${responsable}</p>
+                <p><strong>Periodo:</strong> ${mes}/${anno}</p>
+                
+                <h2>Introducción</h2>
+                <p>Breve descripción del objetivo del informe y alcance.</p>
+                
+                <h2>Resumen Ejecutivo</h2>
+                <p>Principales hallazgos y novedades del periodo.</p>
+                
+                <h2>Eventos críticos o incidentes</h2>
+                <p>[Detalle de eventos]</p>
+                
+                <h2>Recomendaciones y próximos pasos</h2>
+                <p>[Recomendaciones]</p>
+                
+                <h2>1. SEGURIDAD DE LA INFORMACION</h2>
+                
+                <h3>1.1 Gestión de Directorio Activo</h3>
+                <p>Estado de los controladores de dominio: ${getStatusText('dominioEstado')}</p>
+                ${getPreviewImages('dominio-preview')}
+                
+                <p>Sincronización de controladores: ${getStatusText('sincronizacionEstado')}</p>
+                ${getPreviewImages('sincronizacion-preview')}
+                
+                <p>Copia de seguridad del Directorio Activo: ${getStatusText('backupEstado')}</p>
+                ${getPreviewImages('backup-preview')}
+                
+                <p>Consolidado de usuarios del dominio: ${document.getElementById('usuariosDominio').value || '[Detalle]'}</p>
+                ${getPreviewImages('usuarios-preview')}
+                
+                <p>Comentarios adicionales: ${document.getElementById('comentarios_da').value || '[Ninguno]'}</p>
+                
+                <h3>1.2 Planes y Seguimiento</h3>
+                <p>Planes de mejora: ${document.getElementById('planes_mejora').value || '[Detalle]'}</p>
+                <p>Seguimiento a planes de mejora: ${document.getElementById('seguimiento_planes').value || '[Detalle]'}</p>
+                ${getPreviewImages('ps_evidence-preview')}
+                
+                <h2>2. CIBERSEGURIDAD</h2>
+                
+                <h3>2.1 Consola Kaspersky Security Center</h3>
+                <p>Consola de administración: ${getStatusText('kasperskyEstado')}</p>
+                ${getPreviewImages('kaspersky-preview')}
+                
+                <p>Control de amenazas: ${document.getElementById('control_amenazas').value || '[Detalle]'}</p>
+                <p>Uso de licencias: ${document.getElementById('uso_licencias').value || '[Detalle]'}</p>
+                <p>Evidencia de módulos de seguridad: ${document.getElementById('modulos_seguridad').value || '[Detalle]'}</p>
+                
+                <p>Backup servidor Kaspersky: ${getStatusText('backupKaspersky')}</p>
+                ${getPreviewImages('backupKaspersky-preview')}
+                
+                <p>Comentarios adicionales: ${document.getElementById('comentarios_k').value || '[Ninguno]'}</p>
+                
+                <h3>2.2 Reportes y Controles Fortinet</h3>
+                <p>Reporte de amenazas Fortianalyzer: ${document.getElementById('reporte_fortianalyzer').value || '[Detalle]'}</p>
+                <p>Bloqueo de accesos por categoría Fortianalyzer: ${document.getElementById('bloqueo_accesos').value || '[Detalle]'}</p>
+                <p>Reporte Fortimail: ${document.getElementById('reporte_fortimail').value || '[Detalle]'}</p>
+                <p>Volumen de correos: ${document.getElementById('volumen_correos').value || '[Detalle]'}</p>
+                ${getPreviewImages('fortinet_evidence-preview')}
+                
+                <h3>2.3 Análisis y Campañas</h3>
+                <p>Control de amenazas por archivos o URL maliciosos (Virus Total): ${document.getElementById('analisis_amenazas').value || '[Detalle]'}</p>
+                <p>Difusión de campañas de concientización: ${document.getElementById('campanas_concientizacion').value || '[Detalle]'}</p>
+                ${getPreviewImages('analisis_evidence-preview')}
+                
+                <h2>3. SEGURIDAD ELECTRONICA</h2>
+                
+                <h3>3.1 Sistemas de Videovigilancia</h3>
+                <p>Instalaciones y estado de sistema CCTV: ${getStatusText('cctvEstado')}</p>
+                ${getPreviewImages('cctv-preview')}
+                
+                <p>Mantenimiento programado y realizado: ${document.getElementById('mantenimiento_cctv').value || '[Detalle]'}</p>
+                
+                <h4>Instalaciones CCTV:</h4>
+                ${getInstallationsPreview('cctv-instalaciones')}
+                
+                <p>Comentarios adicionales: ${document.getElementById('comentarios_cctv').value || '[Ninguno]'}</p>
+                
+                <h3>3.2 Sistemas de Alarma</h3>
+                <p>Instalación y estado de sistemas de alarma: ${getStatusText('alarmaEstado')}</p>
+                ${getPreviewImages('alarma-preview')}
+                
+                <h4>Instalaciones de Alarmas:</h4>
+                ${getInstallationsPreview('alarma-instalaciones')}
+                
+                <p>Monitoreo externo: ${getStatusText('monitoreoExterno')}</p>
+                <p>Monitoreo propio: ${getStatusText('monitoreoPropio')}</p>
+                
+                <h3>3.3 Control de Acceso Físico</h3>
+                <p>Estado del sistema control de acceso ZKBio CVSecurity: ${getStatusText('accesoEstado')}</p>
+                ${getPreviewImages('acceso-preview')}
+                
+                <p>Número de puertas: ${document.getElementById('numero_puertas').value || '[Detalle]'}</p>
+                <p>Estado del servidor: ${getStatusText('servidorEstado')}</p>
+                
+                <p>Backup servidor control de acceso: ${getStatusText('backupAcceso')}</p>
+                ${getPreviewImages('backupAcceso-preview')}
+                
+                <h3>3.4 Servidor DSS</h3>
+                <p>Número de dispositivos y canales: ${document.getElementById('dispositivos_canales').value || '[Detalle]'}</p>
+                
+                <p>Estado servidor DSS: ${getStatusText('dssEstado')}</p>
+                ${getPreviewImages('dss-preview')}
+                
+                <p>Backup servidor DSS: ${getStatusText('backupDss')}</p>
+                ${getPreviewImages('backupDss-preview')}
+                
+                <h2>4. Conclusiones</h2>
+                <p>Evaluación general del estado de la seguridad perimetral: ${document.getElementById('evaluacion_general').value || '[Detalle]'}</p>
+                <p>Riesgos y observaciones principales: ${document.getElementById('riesgos_observaciones').value || '[Detalle]'}</p>
+                <p>Prioridades para el próximo periodo: ${document.getElementById('prioridades').value || '[Detalle]'}</p>
+                
+                <h2>5. Anexos</h2>
+                <p>${document.getElementById('anexos').value || 'Documentos de referencia.'}</p>
+            `;
+            
+            // Actualizar la vista previa
+            previewContent.innerHTML = content;
+            updateProgress();
+        }
+        
+        // Función auxiliar para obtener texto de estado
+        function getStatusText(selectId) {
+            const select = document.getElementById(selectId);
+            if (!select) return '[Detalle]';
+            
+            switch(select.value) {
+                case 'ok': return 'Normal';
+                case 'warning': return 'Con problemas';
+                case 'unknown': return 'Desconocido';
+                default: return '[Detalle]';
+            }
+        }
+        
+        // Función auxiliar para obtener imágenes de vista previa
+        function getPreviewImages(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container || container.children.length === 0) return '';
+            
+            let imagesHtml = '<div class="preview-image-container">';
+            Array.from(container.children).forEach(img => {
+                imagesHtml += `<img src="${img.src}" class="preview-image" alt="Evidencia">`;
+            });
+            imagesHtml += '</div>';
+            
+            return imagesHtml;
+        }
+        
+        // Función auxiliar para obtener vista previa de instalaciones
+        function getInstallationsPreview(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container || container.children.length === 0) return '<p>No se han agregado instalaciones.</p>';
+            
+            let installationsHtml = '';
+            Array.from(container.children).forEach(installation => {
+                const name = installation.querySelector('input[type="text"]')?.value || '[Nombre no especificado]';
+                const description = installation.querySelector('textarea')?.value || '[Descripción no disponible]';
+                const evidenceContainer = installation.querySelector('.image-mini-preview');
+                
+                installationsHtml += `
+                    <div style="margin-bottom: 15px;">
+                        <p><strong>Punto:</strong> ${name}</p>
+                        <p><strong>Descripción:</strong> ${description}</p>
+                        ${evidenceContainer && evidenceContainer.children.length > 0 ? getPreviewImagesFromContainer(evidenceContainer) : ''}
+                    </div>
+                `;
+            });
+            
+            return installationsHtml;
+        }
+        
+        // Función auxiliar para obtener imágenes de un contenedor específico
+        function getPreviewImagesFromContainer(container) {
+            let imagesHtml = '<div class="preview-image-container">';
+            Array.from(container.children).forEach(img => {
+                imagesHtml += `<img src="${img.src}" class="preview-image" alt="Evidencia">`;
+            });
+            imagesHtml += '</div>';
+            
+            return imagesHtml;
+        }
+        
+        // Función para generar el informe completo
+        function generateFullReport() {
+            alert('Función para generar el informe completo. Conectar con n8n para procesar los datos.');
+            // Aquí se conectaría con n8n para procesar los datos y generar el documento final
+        }
+        
+        // Función para actualizar la vista previa
+        function refreshPreview() {
+            updatePreview();
+            alert('Vista previa actualizada');
+        }
+    </script>
+</body>
+</html>
