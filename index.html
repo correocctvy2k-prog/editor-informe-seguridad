@@ -1960,6 +1960,392 @@
             updatePreview();
             alert('Vista previa actualizada');
         }
+        // ======================================
+// FUNCIONES PARA CONECTAR CON N8N
+// ======================================
+
+// Función principal para enviar datos a n8n
+async function enviarInformeAn8n() {
+    try {
+        // Mostrar indicador de carga
+        mostrarProgresoN8n('Recopilando datos del formulario...', 5);
+        
+        // Recopilar todos los datos del formulario
+        const datosFormulario = recopilarDatosFormulario();
+        
+        // Validar que hay datos mínimos
+        if (!datosFormulario.mes || !datosFormulario.responsable) {
+            alert('Por favor complete al menos el Mes y Responsable antes de enviar.');
+            return;
+        }
+        
+        mostrarProgresoN8n('Enviando datos a n8n...', 20);
+        
+        // Enviar a n8n
+        const response = await fetch('https://n8n.srv933145.hstgr.cloud/webhook/form_seguridad', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(datosFormulario)
+        });
+        
+        mostrarProgresoN8n('Procesando respuesta...', 80);
+        
+        if (response.ok) {
+            mostrarProgresoN8n('¡Informe enviado exitosamente!', 100);
+            
+            // Mostrar mensaje de éxito
+            setTimeout(() => {
+                alert(`¡Informe enviado correctamente!
+                
+✅ Datos procesados: ${JSON.stringify(datosFormulario).length} caracteres
+✅ Mes: ${datosFormulario.mes}
+✅ Responsable: ${datosFormulario.responsable}
+✅ Imágenes: ${datosFormulario.imagenes.length} archivos
+
+El informe se está generando automáticamente en Google Drive.
+Revise su email para el enlace del documento final.`);
+            }, 1000);
+            
+        } else {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+        
+    } catch (error) {
+        console.error('Error enviando a n8n:', error);
+        mostrarProgresoN8n('Error en el envío', 0);
+        
+        setTimeout(() => {
+            alert(`Error al enviar informe: ${error.message}
+            
+🔍 Detalles técnicos:
+- URL: https://n8n.srv933145.hstgr.cloud/webhook/form_seguridad
+- Error: ${error.message}
+
+Por favor intente nuevamente o contacte al administrador.`);
+        }, 500);
+    }
+}
+
+// Función para recopilar todos los datos del formulario
+function recopilarDatosFormulario() {
+    const datos = {
+        // Datos básicos
+        mes: document.getElementById('mes').value,
+        anno: document.getElementById('anno').value,
+        fecha_elaboracion: document.getElementById('fecha_elaboracion').value,
+        responsable: document.getElementById('responsable').value,
+        periodo: `${document.getElementById('mes').value} ${document.getElementById('anno').value}`,
+        
+        // 1. SEGURIDAD DE LA INFORMACIÓN
+        seguridad_informacion: {
+            directorio_activo: {
+                estado_controladores: document.getElementById('dominioEstado').value,
+                sincronizacion_controladores: document.getElementById('sincronizacionEstado').value,
+                backup_directorio: document.getElementById('backupEstado').value,
+                consolidado_usuarios: document.getElementById('usuariosDominio').value,
+                comentarios_da: document.getElementById('comentarios_da').value
+            },
+            planes_seguimiento: {
+                planes_mejora: document.getElementById('planes_mejora').value,
+                seguimiento_planes: document.getElementById('seguimiento_planes').value
+            }
+        },
+        
+        // 2. CIBERSEGURIDAD
+        ciberseguridad: {
+            kaspersky: {
+                estado_consola: document.getElementById('kasperskyEstado').value,
+                control_amenazas: document.getElementById('control_amenazas').value,
+                uso_licencias: document.getElementById('uso_licencias').value,
+                modulos_seguridad: document.getElementById('modulos_seguridad').value,
+                backup_kaspersky: document.getElementById('backupKaspersky').value,
+                comentarios_kaspersky: document.getElementById('comentarios_k').value
+            },
+            fortinet: {
+                reporte_amenazas: document.getElementById('reporte_fortianalyzer').value,
+                bloqueo_accesos: document.getElementById('bloqueo_accesos').value,
+                reporte_fortimail: document.getElementById('reporte_fortimail').value,
+                volumen_correos: document.getElementById('volumen_correos').value
+            },
+            analisis_campanas: {
+                control_virus_total: document.getElementById('analisis_amenazas').value,
+                campanas_concientizacion: document.getElementById('campanas_concientizacion').value
+            }
+        },
+        
+        // 3. SEGURIDAD ELECTRÓNICA
+        seguridad_electronica: {
+            videovigilancia: {
+                estado_cctv: document.getElementById('cctvEstado').value,
+                mantenimiento_cctv: document.getElementById('mantenimiento_cctv').value,
+                comentarios_cctv: document.getElementById('comentarios_cctv').value,
+                instalaciones_cctv: obtenerInstalaciones('cctv-instalaciones')
+            },
+            alarmas: {
+                estado_alarmas: document.getElementById('alarmaEstado').value,
+                monitoreo_externo: document.getElementById('monitoreoExterno').value,
+                monitoreo_propio: document.getElementById('monitoreoPropio').value,
+                instalaciones_alarma: obtenerInstalaciones('alarma-instalaciones')
+            },
+            control_acceso: {
+                estado_zkbio: document.getElementById('accesoEstado').value,
+                numero_puertas: document.getElementById('numero_puertas').value,
+                estado_servidor: document.getElementById('servidorEstado').value,
+                backup_acceso: document.getElementById('backupAcceso').value
+            },
+            servidor_dss: {
+                dispositivos_canales: document.getElementById('dispositivos_canales').value,
+                estado_dss: document.getElementById('dssEstado').value,
+                backup_dss: document.getElementById('backupDss').value
+            }
+        },
+        
+        // 4. CONCLUSIONES
+        conclusiones: {
+            evaluacion_general: document.getElementById('evaluacion_general').value,
+            riesgos_observaciones: document.getElementById('riesgos_observaciones').value,
+            prioridades: document.getElementById('prioridades').value,
+            anexos: document.getElementById('anexos').value
+        },
+        
+        // IMÁGENES - Recopilar todas las imágenes subidas
+        imagenes: recopilarImagenes(),
+        
+        // METADATOS
+        metadata: {
+            fecha_envio: new Date().toISOString(),
+            navegador: navigator.userAgent,
+            total_campos_completados: calcularCamposCompletados(),
+            version_formulario: '1.0'
+        }
+    };
+    
+    return datos;
+}
+
+// Función para obtener instalaciones de una sección
+function obtenerInstalaciones(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return [];
+    
+    const instalaciones = [];
+    const installationElements = container.querySelectorAll('.installation-container');
+    
+    installationElements.forEach((installation, index) => {
+        const nombre = installation.querySelector('input[type="text"]')?.value || '';
+        const descripcion = installation.querySelector('textarea')?.value || '';
+        
+        instalaciones.push({
+            id: index + 1,
+            nombre: nombre,
+            descripcion: descripcion,
+            evidencias: obtenerImagenesDeContenedor(installation.querySelector('.image-mini-preview'))
+        });
+    });
+    
+    return instalaciones;
+}
+
+// Función para recopilar todas las imágenes del formulario
+function recopilarImagenes() {
+    const imagenes = [];
+    
+    // Mapeo de IDs de preview a nombres descriptivos
+    const imagenesMap = {
+        'dominio-preview': 'Controladores_Dominio',
+        'sincronizacion-preview': 'Sincronizacion_Controladores',
+        'backup-preview': 'Backup_Directorio_Activo',
+        'usuarios-preview': 'Usuarios_Dominio',
+        'ps_evidence-preview': 'Planes_Seguimiento',
+        'kaspersky-preview': 'Kaspersky_Consola',
+        'backupKaspersky-preview': 'Backup_Kaspersky',
+        'fortinet_evidence-preview': 'Fortinet_Evidencias',
+        'analisis_evidence-preview': 'Analisis_Amenazas',
+        'cctv-preview': 'Sistema_CCTV',
+        'alarma-preview': 'Sistema_Alarmas',
+        'acceso-preview': 'Control_Acceso',
+        'backupAcceso-preview': 'Backup_Acceso',
+        'dss-preview': 'Servidor_DSS',
+        'backupDss-preview': 'Backup_DSS'
+    };
+    
+    // Recopilar imágenes de cada sección
+    Object.keys(imagenesMap).forEach(previewId => {
+        const container = document.getElementById(previewId);
+        if (container && container.children.length > 0) {
+            Array.from(container.children).forEach((img, index) => {
+                imagenes.push({
+                    nombre: `${imagenesMap[previewId]}_${index + 1}.jpg`,
+                    base64: img.src,
+                    descripcion: `Evidencia de ${imagenesMap[previewId].replace(/_/g, ' ')}`,
+                    seccion: previewId.replace('-preview', ''),
+                    timestamp: new Date().toISOString()
+                });
+            });
+        }
+    });
+    
+    // Recopilar imágenes de instalaciones
+    const installationContainers = document.querySelectorAll('.installation-container');
+    installationContainers.forEach((installation, instIndex) => {
+        const evidenceContainer = installation.querySelector('.image-mini-preview');
+        if (evidenceContainer && evidenceContainer.children.length > 0) {
+            const installationName = installation.querySelector('input[type="text"]')?.value || `Instalacion_${instIndex + 1}`;
+            
+            Array.from(evidenceContainer.children).forEach((img, imgIndex) => {
+                imagenes.push({
+                    nombre: `${installationName.replace(/\s+/g, '_')}_${imgIndex + 1}.jpg`,
+                    base64: img.src,
+                    descripcion: `Evidencia de instalación: ${installationName}`,
+                    seccion: 'instalaciones',
+                    instalacion_id: instIndex,
+                    timestamp: new Date().toISOString()
+                });
+            });
+        }
+    });
+    
+    return imagenes;
+}
+
+// Función para obtener imágenes de un contenedor específico
+function obtenerImagenesDeContenedor(container) {
+    if (!container || container.children.length === 0) return [];
+    
+    const imagenes = [];
+    Array.from(container.children).forEach((img, index) => {
+        imagenes.push({
+            nombre: `evidencia_${index + 1}.jpg`,
+            base64: img.src,
+            descripcion: `Evidencia ${index + 1}`
+        });
+    });
+    
+    return imagenes;
+}
+
+// Función para calcular campos completados
+function calcularCamposCompletados() {
+    let completados = 0;
+    
+    // Campos de texto, select y textarea
+    const campos = document.querySelectorAll('input[type="text"], textarea, select, input[type="number"], input[type="date"]');
+    campos.forEach(campo => {
+        if (campo.value && campo.value.trim() !== '') {
+            completados++;
+        }
+    });
+    
+    // Imágenes
+    const imagePreviews = document.querySelectorAll('.image-mini-preview img');
+    completados += imagePreviews.length;
+    
+    // Instalaciones
+    const installations = document.querySelectorAll('.installation-container');
+    completados += installations.length;
+    
+    return completados;
+}
+
+// Función para mostrar progreso durante el envío
+function mostrarProgresoN8n(mensaje, porcentaje) {
+    // Actualizar el indicador de progreso existente
+    const progressText = document.getElementById('progress-text');
+    const progressFill = document.getElementById('progress-fill');
+    
+    if (progressText && progressFill) {
+        progressText.textContent = `${porcentaje}%`;
+        
+        const progressColor = porcentaje < 30 ? '#e74c3c' : porcentaje < 70 ? '#f9a826' : '#64ffda';
+        progressFill.style.background = `conic-gradient(${progressColor} ${porcentaje * 3.6}deg, transparent 0)`;
+        
+        // Actualizar color CSS
+        document.documentElement.style.setProperty('--progress-color', progressColor);
+    }
+    
+    // Mostrar mensaje en consola
+    console.log(`n8n Progress: ${porcentaje}% - ${mensaje}`);
+    
+    // Opcional: Mostrar en una notificación toast (puedes agregar esto más tarde)
+    // mostrarToast(mensaje, porcentaje);
+}
+
+// Función para generar informe (conectar con n8n)
+function generateFullReport() {
+    // Preguntar confirmación antes de enviar
+    const confirmacion = confirm(`¿Está listo para generar el informe automático?
+
+📋 Se enviará a n8n para procesamiento
+📁 Se creará carpeta en Google Drive
+📄 Se generará documento automáticamente
+📧 Recibirá notificación por email
+
+¿Continuar?`);
+    
+    if (confirmacion) {
+        enviarInformeAn8n();
+    }
+}
+
+// Función para hacer prueba rápida de conexión
+async function probarConexionN8n() {
+    try {
+        const datosPrueba = {
+            mes: "Prueba",
+            responsable: "Test Usuario",
+            test: true,
+            timestamp: new Date().toISOString()
+        };
+        
+        const response = await fetch('https://n8n.srv933145.hstgr.cloud/webhook/form_seguridad', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(datosPrueba)
+        });
+        
+        if (response.ok) {
+            alert('✅ Conexión con n8n exitosa!\n\nEl webhook está funcionando correctamente.');
+        } else {
+            alert(`❌ Error de conexión:\nStatus: ${response.status}\n\nRevise la configuración del webhook.`);
+        }
+        
+    } catch (error) {
+        alert(`❌ Error de conexión:\n${error.message}\n\nRevise:\n- URL del webhook\n- Conexión a internet\n- Estado del servidor n8n`);
+    }
+}
+
+// ======================================
+// BOTONES ADICIONALES EN EL HTML
+// ======================================
+
+// Agregar botones al HTML cuando se carga la página
+document.addEventListener('DOMContentLoaded', function() {
+    // Buscar el botón existente de "Generar Informe Completo"
+    const btnGenerate = document.querySelector('.btn-generate-section[onclick="generateFullReport()"]');
+    
+    if (btnGenerate) {
+        // Cambiar el texto del botón existente
+        btnGenerate.innerHTML = '<i class="fas fa-rocket"></i> Enviar a n8n - Generar Informe Automático';
+        
+        // Agregar botón de prueba al lado
+        const btnTest = document.createElement('button');
+        btnTest.className = 'btn-generate-section';
+        btnTest.style.marginLeft = '10px';
+        btnTest.style.background = 'rgba(100, 255, 218, 0.1)';
+        btnTest.style.color = 'var(--accent-primary)';
+        btnTest.innerHTML = '<i class="fas fa-plug"></i> Probar Conexión n8n';
+        btnTest.onclick = probarConexionN8n;
+        
+        btnGenerate.parentNode.appendChild(btnTest);
+    }
+});
+
+console.log('✅ Funciones de n8n cargadas correctamente');
+console.log('🔗 Webhook URL: https://n8n.srv933145.hstgr.cloud/webhook/form_seguridad');
     </script>
 </body>
 </html>
