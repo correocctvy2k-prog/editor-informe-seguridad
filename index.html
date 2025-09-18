@@ -1967,17 +1967,44 @@
 // Función principal para enviar datos a n8n
 async function enviarInformeAn8n() {
     try {
-        // Mostrar indicador de carga
         mostrarProgresoN8n('Recopilando datos del formulario...', 5);
         
-        // Recopilar todos los datos del formulario
         const datosFormulario = recopilarDatosFormulario();
         
-        // Validar que hay datos mínimos
-        if (!datosFormulario.mes || !datosFormulario.responsable) {
-            alert('Por favor complete al menos el Mes y Responsable antes de enviar.');
-            return;
-        }
+        // Crear FormData para enviar binarios
+        const formData = new FormData();
+        
+        // Agregar datos JSON
+        formData.append('json_data', JSON.stringify({
+            ...datosFormulario,
+            imagenes: datosFormulario.imagenes.map(img => ({
+                nombre: img.nombre,
+                descripcion: img.descripcion,
+                seccion: img.seccion,
+                timestamp: img.timestamp
+            }))
+        }));
+        
+        // Agregar archivos binarios
+        datosFormulario.imagenes.forEach((img, index) => {
+            if (img.archivo) {
+                formData.append(`imagen_${index}`, img.archivo);
+            }
+        });
+        
+        mostrarProgresoN8n('Enviando datos a n8n...', 20);
+        
+        // ENVIAR COMO FORM DATA, NO JSON
+        const response = await fetch('https://n8n.srv933145.hstgr.cloud/webhook-test/form_seguridad', {
+            method: 'POST',
+            body: formData // ← Sin headers Content-Type, el navegador lo pone automático
+        });
+        
+        // ... resto del código igual
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
         
         mostrarProgresoN8n('Enviando datos a n8n...', 20);
         
@@ -2148,28 +2175,29 @@ function obtenerInstalaciones(containerId) {
     return instalaciones;
 }
 
-// Función para recopilar todas las imágenes del formulario
+// Función para recopilar todas las imágenes del formulario COMO BINARIO
 function recopilarImagenes() {
     const imagenes = [];
     
-    // Mapeo de IDs de preview a nombres descriptivos
-    const imagenesMap = {
-        'dominio-preview': 'Controladores_Dominio',
-        'sincronizacion-preview': 'Sincronizacion_Controladores',
-        'backup-preview': 'Backup_Directorio_Activo',
-        'usuarios-preview': 'Usuarios_Dominio',
-        'ps_evidence-preview': 'Planes_Seguimiento',
-        'kaspersky-preview': 'Kaspersky_Consola',
-        'backupKaspersky-preview': 'Backup_Kaspersky',
-        'fortinet_evidence-preview': 'Fortinet_Evidencias',
-        'analisis_evidence-preview': 'Analisis_Amenazas',
-        'cctv-preview': 'Sistema_CCTV',
-        'alarma-preview': 'Sistema_Alarmas',
-        'acceso-preview': 'Control_Acceso',
-        'backupAcceso-preview': 'Backup_Acceso',
-        'dss-preview': 'Servidor_DSS',
-        'backupDss-preview': 'Backup_DSS'
-    };
+    // Obtener todos los inputs de tipo file
+    const fileInputs = document.querySelectorAll('input[type="file"]');
+    
+    for (const input of fileInputs) {
+        if (input.files && input.files.length > 0) {
+            Array.from(input.files).forEach((file, index) => {
+                imagenes.push({
+                    nombre: file.name,
+                    archivo: file, // ← ENVIAR EL ARCHIVO BINARIO, NO BASE64
+                    descripcion: `Evidencia de ${input.id.replace('Img', '')}`,
+                    seccion: input.id,
+                    timestamp: new Date().toISOString()
+                });
+            });
+        }
+    }
+    
+    return imagenes;
+}
     
     // Recopilar imágenes de cada sección
     Object.keys(imagenesMap).forEach(previewId => {
