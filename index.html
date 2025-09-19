@@ -1966,44 +1966,111 @@
 
 // Función principal para enviar datos a n8n
 async function enviarInformeAn8n() {
-    try {
-        mostrarProgresoN8n('Recopilando datos del formulario...', 5);
-        
-        const datosFormulario = recopilarDatosFormulario();
-        
-        // Crear FormData para enviar binarios
-        const formData = new FormData();
-        
-        // Agregar datos JSON
-        formData.append('json_data', JSON.stringify({
-            ...datosFormulario,
-            imagenes: datosFormulario.imagenes.map(img => ({
-                nombre: img.nombre,
-                descripcion: img.descripcion,
-                seccion: img.seccion,
-                timestamp: img.timestamp
-            }))
-        }));
-        
-        // Agregar archivos binarios
-        datosFormulario.imagenes.forEach((img, index) => {
-            if (img.archivo) {
-                formData.append(`imagen_${index}`, img.archivo);
-            }
-        });
-        
-        mostrarProgresoN8n('Enviando datos a n8n...', 20);
-        
-        // ENVIAR COMO FORM DATA, NO JSON
-        const response = await fetch('https://n8n.srv933145.hstgr.cloud/webhook-test/form_seguridad', {
-            method: 'POST',
-            body: formData // ← Sin headers Content-Type, el navegador lo pone automático
-        });
-        
-        // ... resto del código igual
-    } catch (error) {
-        console.error('Error:', error);
+  try {
+    // Mostrar indicador de carga
+    mostrarProgresoN8n('Recopilando datos del formulario...', 5);
+    
+    // Recopilar todos los datos del formulario
+    const datosFormulario = recopilarDatosFormulario();
+    
+    // Validar que hay datos mínimos
+    if (!datosFormulario.mes || !datosFormulario.responsable) {
+      alert('Por favor complete al menos el Mes y Responsable antes de enviar.');
+      mostrarProgresoN8n('Error: Datos incompletos', 0);
+      return;
     }
+    
+    mostrarProgresoN8n('Preparando envío a n8n...', 20);
+    
+    // Crear FormData para enviar binarios
+    const formData = new FormData();
+    
+    // Agregar JSON como string
+    formData.append('json_data', JSON.stringify({
+      // Datos básicos
+      mes: datosFormulario.mes,
+      anno: datosFormulario.anno,
+      fecha_elaboracion: datosFormulario.fecha_elaboracion,
+      responsable: datosFormulario.responsable,
+      periodo: datosFormulario.periodo,
+      
+      // Estructuras de datos (sin imágenes pesadas)
+      seguridad_informacion: datosFormulario.seguridad_informacion,
+      ciberseguridad: datosFormulario.ciberseguridad,
+      seguridad_electronica: datosFormulario.seguridad_electronica,
+      conclusiones: datosFormulario.conclusiones,
+      
+      // Solo metadata de imágenes, no el base64
+      imagenes_referencias: datosFormulario.imagenes.map(img => ({
+        nombre: img.nombre,
+        descripcion: img.descripcion,
+        seccion: img.seccion,
+        timestamp: img.timestamp
+      })),
+      
+      // Metadata
+      metadata: {
+        fecha_envio: new Date().toISOString(),
+        navegador: navigator.userAgent,
+        total_campos_completados: calcularCamposCompletados(),
+        version_formulario: '1.0'
+      }
+    }));
+    
+    // Agregar archivos binarios (máximo 5 para evitar sobrecarga)
+    const imagenesParaEnviar = datosFormulario.imagenes.slice(0, 5);
+    imagenesParaEnviar.forEach((img, index) => {
+      if (img.archivo) {
+        formData.append(`imagen_${index}`, img.archivo);
+      }
+    });
+    
+    mostrarProgresoN8n('Enviando datos a n8n...', 40);
+    
+    // Enviar como multipart/form-data
+    const response = await fetch('https://n8n.srv933145.hstgr.cloud/webhook-test/form_seguridad', {
+      method: 'POST',
+      body: formData // ← El navegador pone automáticamente el Content-Type: multipart/form-data
+    });
+    
+    mostrarProgresoN8n('Procesando respuesta de n8n...', 80);
+    
+    if (response.ok) {
+      const resultado = await response.json();
+      mostrarProgresoN8n('¡Informe enviado exitosamente!', 100);
+      
+      // Mostrar mensaje de éxito
+      setTimeout(() => {
+        alert(`✅ ¡Informe enviado correctamente a n8n!
+
+📋 Datos procesados:
+- Mes: ${datosFormulario.mes}
+- Responsable: ${datosFormulario.responsable}
+- Imágenes: ${imagenesParaEnviar.length} archivos
+- Total campos: ${calcularCamposCompletados()}
+
+El informe se está generando automáticamente en Google Drive.
+Revise su email para el enlace del documento final.`);
+      }, 1000);
+      
+    } else {
+      throw new Error(`Error HTTP: ${response.status} - ${response.statusText}`);
+    }
+    
+  } catch (error) {
+    console.error('Error enviando a n8n:', error);
+    mostrarProgresoN8n('Error en el envío', 0);
+    
+    setTimeout(() => {
+      alert(`❌ Error al enviar informe: ${error.message}
+      
+🔍 Detalles técnicos:
+- URL: https://n8n.srv933145.hstgr.cloud/webhook-test/form_seguridad
+- Error: ${error.message}
+
+Por favor intente nuevamente o contacte al administrador.`);
+    }, 500);
+  }
 }
         
         mostrarProgresoN8n('Enviando datos a n8n...', 20);
@@ -2177,26 +2244,24 @@ function obtenerInstalaciones(containerId) {
 
 // Función para recopilar todas las imágenes del formulario COMO BINARIO
 function recopilarImagenes() {
-    const imagenes = [];
-    
-    // Obtener todos los inputs de tipo file
-    const fileInputs = document.querySelectorAll('input[type="file"]');
-    
-    for (const input of fileInputs) {
-        if (input.files && input.files.length > 0) {
-            Array.from(input.files).forEach((file, index) => {
-                imagenes.push({
-                    nombre: file.name,
-                    archivo: file, // ← ENVIAR EL ARCHIVO BINARIO, NO BASE64
-                    descripcion: `Evidencia de ${input.id.replace('Img', '')}`,
-                    seccion: input.id,
-                    timestamp: new Date().toISOString()
-                });
-            });
-        }
+  const imagenes = [];
+  const fileInputs = document.querySelectorAll('input[type="file"]');
+  
+  for (const input of fileInputs) {
+    if (input.files && input.files.length > 0) {
+      Array.from(input.files).forEach((file, index) => {
+        imagenes.push({
+          nombre: file.name,
+          archivo: file, // ← Guardar el archivo binario
+          descripcion: `Evidencia de ${input.id.replace('Img', '')}`,
+          seccion: input.id,
+          timestamp: new Date().toISOString()
+        });
+      });
     }
-    
-    return imagenes;
+  }
+  
+  return imagenes;
 }
     
     // Recopilar imágenes de cada sección
@@ -2256,48 +2321,30 @@ function obtenerImagenesDeContenedor(container) {
 
 // Función para calcular campos completados
 function calcularCamposCompletados() {
-    let completados = 0;
-    
-    // Campos de texto, select y textarea
-    const campos = document.querySelectorAll('input[type="text"], textarea, select, input[type="number"], input[type="date"]');
-    campos.forEach(campo => {
-        if (campo.value && campo.value.trim() !== '') {
-            completados++;
-        }
-    });
-    
-    // Imágenes
-    const imagePreviews = document.querySelectorAll('.image-mini-preview img');
-    completados += imagePreviews.length;
-    
-    // Instalaciones
-    const installations = document.querySelectorAll('.installation-container');
-    completados += installations.length;
-    
-    return completados;
+  let completados = 0;
+  const campos = document.querySelectorAll('input[type="text"], textarea, select, input[type="number"], input[type="date"]');
+  
+  campos.forEach(campo => {
+    if (campo.value && campo.value.trim() !== '') {
+      completados++;
+    }
+  });
+  
+  return completados;
 }
 
 // Función para mostrar progreso durante el envío
 function mostrarProgresoN8n(mensaje, porcentaje) {
-    // Actualizar el indicador de progreso existente
-    const progressText = document.getElementById('progress-text');
-    const progressFill = document.getElementById('progress-fill');
-    
-    if (progressText && progressFill) {
-        progressText.textContent = `${porcentaje}%`;
-        
-        const progressColor = porcentaje < 30 ? '#e74c3c' : porcentaje < 70 ? '#f9a826' : '#64ffda';
-        progressFill.style.background = `conic-gradient(${progressColor} ${porcentaje * 3.6}deg, transparent 0)`;
-        
-        // Actualizar color CSS
-        document.documentElement.style.setProperty('--progress-color', progressColor);
-    }
-    
-    // Mostrar mensaje en consola
-    console.log(`n8n Progress: ${porcentaje}% - ${mensaje}`);
-    
-    // Opcional: Mostrar en una notificación toast (puedes agregar esto más tarde)
-    // mostrarToast(mensaje, porcentaje);
+  // Actualizar el indicador de progreso
+  const progressText = document.getElementById('progress-text');
+  const progressFill = document.getElementById('progress-fill');
+  
+  if (progressText && progressFill) {
+    progressText.textContent = `${porcentaje}%`;
+    progressFill.style.background = `conic-gradient(#64ffda ${porcentaje * 3.6}deg, transparent 0)`;
+  }
+  
+  console.log(`n8n: ${porcentaje}% - ${mensaje}`);
 }
 
 // Función para generar informe (conectar con n8n)
